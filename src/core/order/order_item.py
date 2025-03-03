@@ -1,18 +1,12 @@
-from decimal import Decimal
 import uuid
+from decimal import Decimal
 
 class OrderItem:
-    def __init__(self, id: uuid.UUID, name: str, price: Decimal, quantity: int) -> None:
+    def __init__(self, name: str, price: Decimal, quantity: int, id: uuid.UUID = uuid.uuid4()) -> None:
         self.id = id
         self.name = name
         self.price = self.__check_price(price)
         self.quantity = self.__check_quantity(quantity)
-    
-    @classmethod
-    def create(cls, name: str, price: Decimal, quantity: int) -> "OrderItem":
-        """建立訂單項目"""
-        id = uuid.uuid4()
-        return cls(id, name, price, quantity)
 
     def __check_price(self, price: Decimal) -> Decimal:
         """檢查價格是否為正數"""

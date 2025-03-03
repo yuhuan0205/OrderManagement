@@ -5,8 +5,8 @@ import uuid
 class OrderRepository(ABC):
     @abstractmethod
     def get(id: uuid.UUID) -> Order:
-        pass
+        raise NotImplementedError()
     
     @abstractmethod
     def save(order: Order) -> None:
-        pass
+        raise NotImplementedError()
