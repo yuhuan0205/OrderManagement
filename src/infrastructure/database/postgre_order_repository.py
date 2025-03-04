@@ -19,7 +19,8 @@ class PostgreOrderRepository(OrderRepository):
             .filter(ORMOrder.id == id)
         )
         order = result.scalars().first()
-        
+        if order == None:
+            return None
         return self._to_domain_model(order)
 
     def create(self, order: OrderBase) -> None:
@@ -65,7 +66,6 @@ class PostgreOrderRepository(OrderRepository):
         self.db.commit()
 
     def delete(self, id: uuid.UUID) -> None:
-        # 刪除資料庫中的 Order 記錄
         stmt = delete(ORMOrder).where(ORMOrder.id == id)
         self.db.execute(stmt)
         self.db.commit()
