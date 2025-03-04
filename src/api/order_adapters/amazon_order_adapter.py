@@ -2,6 +2,7 @@ import uuid
 from core.order.order import OrderBase, Shipment, OrderItem
 from decimal import Decimal
 from pydantic import BaseModel
+from datetime import datetime
 
 class AmazonOrderAdapter(OrderBase):
     def __init__(self, adaptee: "AmazonOrder"):
@@ -16,21 +17,21 @@ class AmazonOrderAdapter(OrderBase):
     def shipments(self) -> list[Shipment]:
         return [
         Shipment(
-            shipment.destination,
-            [OrderItem(order_item.name, order_item.price, order_item.quantity) for order_item in shipment.order_items]
+            self.__adaptee.delivery.address,
+            [OrderItem(order_item.name, order_item.price, order_item.quantity) for order_item in self.__adaptee.delivery.order_items]
         )
-        for shipment in self.__adaptee.shipments
         ]
 
 
 class AmazonOrder(BaseModel):
-    shipments: list["AmazonShipment"]
+    delivery: "AmazonDelivery" 
 
-class AmazonShipment(BaseModel):
-    destination: str
-    order_items: list["AmazonOrderItem"]
+class AmazonDelivery(BaseModel):
+    address: str  
+    items: list["AmazonOrderProduct"]
+    delivery_time: datetime
 
-class AmazonOrderItem(BaseModel):
+class AmazonOrderProduct(BaseModel):
     name: str
-    price: Decimal
+    cost: Decimal
     quantity: int
