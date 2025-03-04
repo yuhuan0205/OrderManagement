@@ -1,38 +1,33 @@
 import uuid
 from core.order.order_repository import OrderRepository
-from core.order.order import Order
-from core.order.shipment import Shipment
-from core.order.order_item import OrderItem
-from models import Order as ORMOrder, Shipment as ORMShipment, OrderItem as ORMOrderItem
-from sqlalchemy.orm import Session
+from core.order.order import OrderBase, Order, OrderItem, Shipment
+from infrastructure.database.models import Order as ORMOrder, Shipment as ORMShipment, OrderItem as ORMOrderItem
+from sqlalchemy import select, update, delete
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.dialects.postgresql import insert
 
 class PostgreOrderRepository(OrderRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def get(self, id: uuid.UUID) -> Order:
-        """根據 id 取得 Order，並轉換為領域模型"""
-        orm_order = self.db.query(ORMOrder).filter(ORMOrder.id == id).first()
-        if not orm_order:
-            return None
-
-        # 轉換 ORM 物件為領域模型
-        return self._to_domain_model(orm_order)
-
-    def save(self, order: Order) -> None:
-        """使用 UPSERT (INSERT ... ON CONFLICT) 來保存訂單"""
-        upsert_stmt = insert(ORMOrder).values(
-            id=order.id
-        ).on_conflict_do_update(
-            index_elements=["id"],
-            set_=
+    def get(self, id: uuid.UUID) -> OrderBase:
+        result = self.db.execute(
+            select(ORMOrder)
+            .options(
+                joinedload(ORMOrder.shipments).joinedload(ORMShipment.order_items)
+            )
+            .filter(ORMOrder.id == id)
         )
-        self.db.execute(upsert_stmt)
+        order = result.scalars().first()
+        
+        return self._to_domain_model(order)
 
-        # 先刪除舊的 Shipment，再新增
-        self.db.query(ORMShipment).filter(ORMShipment.order_id == order.id).delete()
-
+    def create(self, order: OrderBase) -> None:
+        print(order.shipments)
+        insert_stmt = insert(ORMOrder).values(
+            id=order.id
+        )
+        self.db.execute(insert_stmt)
         for shipment in order.shipments:
             new_shipment = ORMShipment(
                 id=shipment.id,
@@ -54,7 +49,28 @@ class PostgreOrderRepository(OrderRepository):
 
         self.db.commit()
     
-    def _to_domain_model(self, orm_order: ORMOrder) -> Order:
+    def update(self, order: OrderBase) -> None:
+        # 更新資料庫中的 Order 記錄
+        stmt = (
+            update(ORMOrder)
+            .where(ORMOrder.id == order.id)
+            .values(
+                # 假設 OrderBase 有這些屬性，根據實際情況調整
+                customer_name=order.customer_name,
+                total_amount=order.total_amount,
+                # 更新其他欄位...
+            )
+        )
+        self.db.execute(stmt)
+        self.db.commit()
+
+    def delete(self, id: uuid.UUID) -> None:
+        # 刪除資料庫中的 Order 記錄
+        stmt = delete(ORMOrder).where(ORMOrder.id == id)
+        self.db.execute(stmt)
+        self.db.commit()
+
+    def _to_domain_model(self, orm_order: ORMOrder) -> OrderBase:
         """將 ORM 物件轉換為領域模型"""
         shipments = [
             Shipment(
@@ -73,4 +89,4 @@ class PostgreOrderRepository(OrderRepository):
             )
             for shipment in orm_order.shipments
         ]
-        return Order(id=orm_order.id, shipments=shipments, buyer_id=orm_order.buyer_id)
+        return Order(id=orm_order.id, shipments=shipments)
