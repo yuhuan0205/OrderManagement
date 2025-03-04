@@ -51,18 +51,29 @@ class PostgreOrderRepository(OrderRepository):
         self.db.commit()
     
     def update(self, order: OrderBase) -> None:
-        # 更新資料庫中的 Order 記錄
-        stmt = (
-            update(ORMOrder)
-            .where(ORMOrder.id == order.id)
-            .values(
-                # 假設 OrderBase 有這些屬性，根據實際情況調整
-                customer_name=order.customer_name,
-                total_amount=order.total_amount,
-                # 更新其他欄位...
+        for shipment in order.shipments:
+            stmt = (
+                update(ORMShipment)
+                .where(ORMShipment.id == shipment.id)
+                .values(
+                    shipment_status=shipment.shipment_status,
+                    destination=shipment.destination,
+                )
             )
-        )
-        self.db.execute(stmt)
+            self.db.execute(stmt)
+
+            for item in shipment.order_items:
+                item_stmt = (
+                    update(ORMOrderItem)
+                    .where(ORMOrderItem.id == item.id)
+                    .values(
+                        name=item.name,
+                        price=item.price,
+                        quantity=item.quantity,
+                    )
+                )
+                self.db.execute(item_stmt)
+
         self.db.commit()
 
     def delete(self, id: uuid.UUID) -> None:

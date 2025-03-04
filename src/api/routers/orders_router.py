@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
 from api.dependencies.dependencies import get_order_repository
-from api.order_adapters.self_platform_order_adapter import SelfPlatformOrderAdapter, CreateOrderRequest
+from api.order_adapters.self_platform_order_adapter import SelfPlatformCreateOrderAdapter, CreateOrderRequest, SelfPlatformUpdateOrderAdapter, UpdateOrderRequest
 from core.order.order_repository import OrderRepository
 
 router = APIRouter(
@@ -20,8 +20,17 @@ async def get_order(order_id: UUID, order_repo: OrderRepository = Depends(get_or
 @router.post("/")
 async def create_order(request: CreateOrderRequest, order_repo: OrderRepository = Depends(get_order_repository)):
     try:
-        order = SelfPlatformOrderAdapter(request)
+        order = SelfPlatformCreateOrderAdapter(request)
         order_repo.create(order)
+        return {"order_id": order.id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/")
+async def update_order(request: UpdateOrderRequest, order_repo: OrderRepository = Depends(get_order_repository)):
+    try:
+        order = SelfPlatformUpdateOrderAdapter(request)
+        order_repo.update(order)
         return {"order_id": order.id}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
