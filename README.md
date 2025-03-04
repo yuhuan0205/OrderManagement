@@ -2,6 +2,29 @@
 
 這個專案是一個訂單管理系統，旨在處理訂單、運送和訂單項目的資料。該系統使用適配器模式來彙整不同平台的訂單數據，提供統一的接口。
 
+## how to use
+
+step 1. 複製專案
+
+step 2.
+```bash
+cd OrderManagement
+```
+
+step 3.
+```bash
+docker-compose up
+```
+
+step 4.
+
+進入 `http://localhost:8000/docs`
+
+關閉服務
+```bash
+docker-compose down
+```
+
 ## 資料庫架構
 
 ### Order
